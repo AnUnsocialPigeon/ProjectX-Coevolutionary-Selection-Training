@@ -92,8 +92,8 @@ array_size = 10
 
 def generate_data(num_samples, array_size):
     given = np.random.choice(['A', 'B', 'C'], size=(num_samples, array_size))
-    given = (given == 'B').astype(int) + (2 * (given == 'C').astype(int))
     expected = (given == 'B').astype(int) + (2 * (given == 'A').astype(int))
+    given = (given == 'B').astype(int) + (2 * (given == 'C').astype(int))
     return given, expected
 
 
@@ -103,6 +103,9 @@ def train_predators(model, given, expected_output, epochs=4):
 
 if __name__ == "__main__":
     given, expected = generate_data(num_samples, array_size)
+    print (given)
+    print(expected)
+
     for epoc in range(5):
         # Train the predator
         start_time = time.time()
@@ -122,4 +125,7 @@ if __name__ == "__main__":
         print(f"Epoch time (Prey): {prey_end_time - start_time} seconds")
         print(f"Epoch time (Predator): {predator_end_time - prey_end_time} seconds")
         print(f"Epoch time (Combined): {predator_end_time - start_time} seconds")
+        print(f"Predator Fitness: {fitness_value}")
+        print(f"Predator Predicted: {predictions}")
+        print(f"Predator Expected: {expected}")
 
