@@ -10,7 +10,6 @@ import numpy as np
 
 
 def prey_evaluation(individual):
-
     return 1
 
 def predator_evaluation(predator_output, expected):
@@ -43,7 +42,7 @@ CXPB, MUTPB, NGEN = 0.7, 0.2, 50
 # Evaluate the entire population
 fitnesses = list(map(toolbox.evaluate, population))
 for ind, fit in zip(population, fitnesses):
-    ind.fitness.values = fit
+    ind.fitness.values = (fit,) # Remove brackets when the prey function has been sorted
 
 
 def train_prey():
@@ -71,7 +70,7 @@ def train_prey():
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
-            ind.fitness.values = fit
+            ind.fitness.values = (fit, )
 
         # Replace the old population by the offspring
         population[:] = offspring
@@ -93,6 +92,7 @@ array_size = 10
 
 def generate_data(num_samples, array_size):
     given = np.random.choice(['A', 'B', 'C'], size=(num_samples, array_size))
+    given = (given == 'B').astype(int) + (2 * (given == 'C').astype(int))
     expected = (given == 'B').astype(int) + (2 * (given == 'A').astype(int))
     return given, expected
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         train_prey()
         prey_end_time = time.time()
 
-        fitness_value = predator_evaluation(predictions.round(), )
+        fitness_value = predator_evaluation(predictions.round(), expected)
         predator_end_time = time.time()
 
         print(f"Epoch time (Prey): {prey_end_time - start_time} seconds")
