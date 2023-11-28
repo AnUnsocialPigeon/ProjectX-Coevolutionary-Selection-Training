@@ -10,7 +10,7 @@ import numpy as np
 
 
 def prey_evaluation(individual):
-    # Current task - get this function to evaluate the pray as according to the predator
+
     return 1
 
 def predator_evaluation(predator_output, expected):
