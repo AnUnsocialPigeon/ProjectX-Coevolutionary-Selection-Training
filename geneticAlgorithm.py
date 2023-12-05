@@ -47,7 +47,7 @@ class geneticAlgorithm():
             
     
     def train_prey(self):
-    # Begin the evolution
+        # Begin the evolution
         for gen in range(self.NGEN):
             # Select the next generation individuals
             offspring = self.toolbox.select(self.population, len(self.population))
