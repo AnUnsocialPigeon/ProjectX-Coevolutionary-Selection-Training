@@ -13,7 +13,10 @@ from generateData import generateData
 from geneticAlgorithm import geneticAlgorithm
 
 def main():
-    given, expected = generate_data(num_samples, array_size)
+
+    raise NotImplementedError("This is a work in progress - idk why we do some things")
+
+    FOLDER_PATH = r"data/"
     
 
     for epoc in range(5):
@@ -29,7 +32,7 @@ def main():
         train_prey()
         prey_end_time = time.time()
 
-        fitness_value = predator_evaluation(predictions.round(), expected)
+        fitness_value = predator_evaluation(predictions.round(), expected) #why do we calculate fitness again?
         predator_end_time = time.time()
 
         print(f"Epoch time (Prey): {prey_end_time - start_time} seconds")

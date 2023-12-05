@@ -59,4 +59,4 @@ class generateData():
             implement the forgetfullness function here
         '''
 
-        raise NotImplementedError
+        raise NotImplementedError("geneEvaluation is not implemented yet")

@@ -48,7 +48,7 @@ class neuralNetwork():
 
     def modelEvaluation(self, chromosome):
         
-        raise NotImplementedError
+        raise NotImplementedError("modelEvaluation(NN) is broken, need to add some processing to some stuff")
 
         filePaths = self.data.getData(chromosome)
         data = [self.data.getImageAndLabel(filePath) for filePath in filePaths]

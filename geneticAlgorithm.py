@@ -39,7 +39,7 @@ class geneticAlgorithm():
         # Set the algorithm parameters
         self.CXPB, self.MUTPB, self.NGEN = 0.7, 0.2, 50
 
-        # Evaluate the entire population
+        # Evaluate the entire population - what are we evaluation when we haven't done any training yet? (copied from Jake's code)
         fitnesses = list(map(self.toolbox.evaluate, population))
         for ind, fit in zip(population, fitnesses):
             # Remove brackets when the old prey function has been sorted, and new geneEvaluation function has been implemented
