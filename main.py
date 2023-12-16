@@ -1,5 +1,8 @@
 import random
 import time
+import os
+from dotenv import load_dotenv
+
 from deap import base, creator, tools
 
 # Predator libraries
@@ -14,10 +17,14 @@ from geneticAlgorithm import geneticAlgorithm
 
 def main():
 
-    raise NotImplementedError("This is a work in progress - idk why we do some things")
+    #raise NotImplementedError("This is a work in progress - idk why we do some things")
 
-    FOLDER_PATH = r"data/"
-    
+    load_dotenv()
+
+    FOLDER_PATH = os.getenv("FOLDER_PATH")
+
+    predator = neuralNetwork()
+    prey = geneticAlgorithm(FOLDER_PATH)
 
     for epoc in range(5):
         # Train the predator
