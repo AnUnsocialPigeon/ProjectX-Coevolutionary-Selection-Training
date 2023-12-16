@@ -23,18 +23,18 @@ class geneticAlgorithm():
 
         # Create a toolbox with the required evolutionary operators
         self.toolbox = base.Toolbox()
-        self.toolbox.register("attribute", random.random)
-        self.toolbox.register("individual", tools.initRepeat, creator.Individual, self.toolbox.attribute, n=10)
+        self.toolbox.register("attribute", random.random) # individuals are encoded as binary vectors so it should be either 1 or 0
+        self.toolbox.register("individual", tools.initRepeat, creator.Individual, self.toolbox.attribute, n=10) # this creates individual of 10 genes
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
 
         self.toolbox.register("mate", tools.cxTwoPoint)
         self.toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.2)
         self.toolbox.register("select", tools.selTournament, tournsize=3)
-        self.toolbox.register("evaluate", self.neuralNetwork.data.geneEvaluation())
+        self.toolbox.register("evaluate", self.neuralNetwork.data.geneEvaluation()) # geneEvaluation() function needs some work
 
         # ============== PREY ==============
         # Create an initial population
-        population = self.toolbox.population(n=70)
+        population = self.toolbox.population(n=70) # population of 70 individuals 
 
         # Set the algorithm parameters
         self.CXPB, self.MUTPB, self.NGEN = 0.7, 0.2, 50
