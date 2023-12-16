@@ -23,7 +23,7 @@ def increment(i=0):
 
 class generateData():
 
-    def __init__(self, folderPath = r"C:\Users\shahs\DEAP-evo-example\data"):
+    def __init__(self, folderPath):
         self.folderPath = folderPath
         self.geneToFilePath = {i:os.join(self.filePath, j) for i, j in zip(increment(), os.listdir(self.folderPath))}
         self.filePathToGene = {j:i for i, j in self.geneToFilePath.items()}
