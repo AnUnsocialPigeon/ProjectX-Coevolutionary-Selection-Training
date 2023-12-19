@@ -19,9 +19,9 @@ generate data is called data in this class, idk why I chose to do that, but oh w
 '''
 
 class neuralNetwork():
-    def __init__(self, data=generateData()):
+    def __init__(self, folder_path):
         
-        self.data = data
+        self.data = generateData(folder_path)
         self.getModel()
 
     def getModel(self): #will have to change at integration stage
@@ -47,7 +47,6 @@ class neuralNetwork():
         self.model.fit(images, labels, epochs=epoch, verbose=2)
 
     def modelEvaluation(self, chromosome):
-        
         raise NotImplementedError("modelEvaluation(NN) is broken, need to add some processing to some stuff")
 
         filePaths = self.data.getData(chromosome)
