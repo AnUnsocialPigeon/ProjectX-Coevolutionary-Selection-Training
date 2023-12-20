@@ -33,9 +33,9 @@ def main(FOLDER_PATH, CLASS_COUNT):
 
         # TODO: Probably print timing info as well
         # TODO: probably add in relevant print statements in the various classes
+        # TODO: ACTUAL neural network stuff such as validation
 
-
-# TODO: evaluate the predator against the entire dataset
+# TODO: evaluate the predator against the entire dataset to see how good it is
 
 
 if __name__ == "__main__":
