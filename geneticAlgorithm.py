@@ -4,8 +4,8 @@ from deap import base, creator, tools
 
 # Predator libraries
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+from keras.models import Sequential
+from keras.layers import Dense
 import numpy as np
 
 from neuralNetwork import neuralNetwork
@@ -15,7 +15,7 @@ class geneticAlgorithm():
 
     def __init__(self, folderPath):
         self.neuralNetwork = neuralNetwork(generateData(folderPath))
-        self.chromosomeLength = self.neuralNetwork.data.getStructure()
+        self.chromosomeLength, self.numberOfClasses = self.neuralNetwork.data.getStructure() 
 
         # Define the individual and population
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -24,13 +24,13 @@ class geneticAlgorithm():
         # Create a toolbox with the required evolutionary operators
         self.toolbox = base.Toolbox()
         self.toolbox.register("attribute", random.random) # individuals are encoded as binary vectors so it should be either 1 or 0
-        self.toolbox.register("individual", tools.initRepeat, creator.Individual, self.toolbox.attribute, n=10) # this creates individual of 10 genes
+        self.toolbox.register("individual", tools.initRepeat, creator.Individual, self.toolbox.attribute, n=self.chromosomeLength) # this creates individual of 10 genes
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
 
         self.toolbox.register("mate", tools.cxTwoPoint)
         self.toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.2)
         self.toolbox.register("select", tools.selTournament, tournsize=3)
-        self.toolbox.register("evaluate", self.neuralNetwork.data.geneEvaluation()) # geneEvaluation() function needs some work
+        self.toolbox.register("evaluate", self.neuralNetwork.chromosomeEvaluation())
 
         # ============== PREY ==============
         # Create an initial population
@@ -39,7 +39,7 @@ class geneticAlgorithm():
         # Set the algorithm parameters
         self.CXPB, self.MUTPB, self.NGEN = 0.7, 0.2, 50
 
-        # Evaluate the entire population - what are we evaluation when we haven't done any training yet? (copied from Jake's code)
+        # Evaluate the entire population - what are we evaluation when we haven't done any training yet? (copied from Jake's old Main)
         fitnesses = list(map(self.toolbox.evaluate, population))
         for ind, fit in zip(population, fitnesses):
             # Remove brackets when the old prey function has been sorted, and new geneEvaluation function has been implemented

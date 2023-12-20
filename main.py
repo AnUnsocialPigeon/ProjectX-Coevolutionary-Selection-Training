@@ -1,54 +1,49 @@
-import random
-import time
 import os
+import sys
+import time
+import random
+from datetime import datetime
 from dotenv import load_dotenv
 
 from deap import base, creator, tools
 
 # Predator libraries
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+from keras.models import Sequential
+from keras.layers import Dense
 import numpy as np
 
 from neuralNetwork import neuralNetwork
 from generateData import generateData
 from geneticAlgorithm import geneticAlgorithm
 
-def main():
+def main(FOLDER_PATH, CLASS_COUNT):
 
-    #raise NotImplementedError("This is a work in progress - idk why we do some things")
-
-    load_dotenv()
-
-    FOLDER_PATH = os.getenv("FOLDER_PATH")
-
+    EPOCHS = 5
     predator = neuralNetwork()
-    prey = geneticAlgorithm(FOLDER_PATH)
+    prey = geneticAlgorithm(FOLDER_PATH, CLASS_COUNT) #shouldnt call this prey
 
-    for epoc in range(5):
+    for _ in range(EPOCHS):
+        
         # Train the predator
-        start_time = time.time()
-        train_predators(predator, given, expected)
-
-        # Test the predator
-        predictions = predator.predict(given)
-        fitness_value = predator_evaluation(predictions, expected)
+        prey.neuralNetwork.trainModel(prey.population)
 
         # Train the prey
-        train_prey()
-        prey_end_time = time.time()
+        prey.train_prey()
 
-        fitness_value = predator_evaluation(predictions.round(), expected) #why do we calculate fitness again?
-        predator_end_time = time.time()
+        # TODO: Probably print timing info as well
+        # TODO: probably add in relevant print statements in the various classes
 
-        print(f"Epoch time (Prey): {prey_end_time - start_time} seconds")
-        print(f"Epoch time (Predator): {predator_end_time - prey_end_time} seconds")
-        print(f"Epoch time (Combined): {predator_end_time - start_time} seconds")
-        print(f"Predator Fitness: {fitness_value}")
-        print(f"Predator Predicted: {predictions}")
-        print(f"Predator Expected: {expected}")
-        print("")
+
+# TODO: evaluate the predator against the entire dataset
+
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 2:
+        print("Usage: python main.py <FOLDER PATH> <CLASS COUNT>")
+        sys.exit(1)
+    
+    FOLDER_PATH = sys.argv[1]
+    CLASS_COUNT = sys.argv[2] #could count classes ourselves
+
+    main(FOLDER_PATH, CLASS_COUNT)
