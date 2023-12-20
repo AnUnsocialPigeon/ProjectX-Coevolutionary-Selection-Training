@@ -40,25 +40,24 @@ class neuralNetwork():
         data = np.array([self.data.getImage(filePath) for filePath in filePaths])
         return self.model.predict(data)
     
-    def trainModel(self, chromosomes, epoch=4): #will have to change at integration stage
+    def trainModel(self, chromosomes): #will have to change at integration stage
         filePaths = self.data.getFilePaths(chromosomes)
         images, labels = np.array([self.data.getImageAndLabel(filePath) for filePath in filePaths]).T
         self.model.fit(images, labels, epochs=epoch, verbose=2)
-        # return chromosome evaluation metrics
+        # change genes in generateData
 
     def modelEvaluation(self, chromosome):
+        raise NotImplementedError("there is some code here, but it is wrong")
         filePaths = self.data.getData(chromosome)
         data = [self.data.getImageAndLabel(filePath) for filePath in filePaths]
         images = [i for i, j in data]
         labels = [j for i, j in data]
-        
-        
 
         correct_predictions = np.sum(self.model.predict(images).round() == labels) # this line requires processing - I have just put stuff on
         fitness_value = correct_predictions / len(chromosome)
         return fitness_value
     
-    def chromosomeEvaluation(self, chromosomes, missclassifications, number):
+    def chromosomeEvaluation(self, chromosomes):
         # just to simplify code in geneticAlgorithm.py
-        return self.data.chromosomeEvaluation(chromosomes, missclassifications, number)
+        return self.data.chromosomeEvaluation(chromosomes)
     
