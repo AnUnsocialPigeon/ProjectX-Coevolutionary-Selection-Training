@@ -1,5 +1,7 @@
 from generateData import generateData
 
+from functools import reduce
+
 # Predator libraries
 import tensorflow as tf
 from keras import layers, models
@@ -41,10 +43,12 @@ class neuralNetwork():
         return self.model.predict(data)
     
     def trainModel(self, chromosomes): #will have to change at integration stage
-        filePaths = self.data.getFilePaths(chromosomes)
-        images, labels = np.array([self.data.getImageAndLabel(filePath) for filePath in filePaths]).T
-        self.model.fit(images, labels, epochs=epoch, verbose=2)
+        # concatenate chromosomes
+        # train nn in batches with custom .fit that gives us missclassifications for each gene
         # change genes in generateData
+        filePaths = self.data.getFilePaths(reduce(lambda a, b: a+b, chromosomes))
+        images, labels = np.array([self.data.getImageAndLabel(filePath) for filePath in filePaths]).T #do this in batches
+        self.model.fit(images, labels, epochs=1, verbose=2)
 
     def modelEvaluation(self, chromosome):
         raise NotImplementedError("there is some code here, but it is wrong")
