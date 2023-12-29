@@ -1,6 +1,9 @@
-Dataset	Layer1	Layer2	Layer3	Dropout	Prey Enabled?	Prey generations	Mode	Approximate time per global epoc	Total time taken	Accuracy	Accuracy per second trained
-CIFAR-10	64	64	128	None	FALSE	N/A	Random 1/5th	9	101.582396	0.424699992	0.004180842
-CIFAR-10	128	64	128	None	FALSE	N/A	Random 1/5th	17	187.407733	0.573099971	0.003058038
-CIFAR-10	128	64	128	None	TRUE	50	Regular	18	259.760042	0.203199998	0.00078226
-CIFAR-10	64	64	128	None	TRUE	50	Regular	9	203.700376	0.228799999	0.001123218
-CIFAR-10	64	64	128	None	TRUE	1	Regular		123.653716	0.221399993	0.001790484
+Dataset	Layer1	Layer2	Layer3	Dropout	Prey Enabled?	Prey generations	Mode	Approximate time per global epoc	Total time taken	Accuracy	Accuracy per second trained	Notes
+CIFAR-10	64	64	128	None	FALSE	N/A	Random 1/5th	9	101.582396	0.424699992	0.004180842	
+CIFAR-10	128	64	128	None	FALSE	N/A	Random 1/5th	17	187.407733	0.573099971	0.003058038	
+CIFAR-10	128	64	128	None	TRUE	50	Regular	18	259.760042	0.203199998	0.00078226	
+CIFAR-10	64	64	128	None	TRUE	50	Regular	9	203.700376	0.228799999	0.001123218	
+CIFAR-10	64	64	128	None	TRUE	1	Regular		123.653716	0.221399993	0.001790484	Prey fitness reached 1
+CIFAR-10	64	64	128	None	TRUE	5	Regular		129.330289	0.159799993	0.001235596	
+												
+											"""=J9/K9"""	
