@@ -1,4 +1,3 @@
-import pickle
 import random
 from datetime import datetime
 import os
@@ -7,43 +6,44 @@ from dotenv import load_dotenv
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.callbacks import EarlyStopping
 
 from deap import base, creator, tools
 
 
-def unpickle(file):
-    with open(file, 'rb') as fo:
-        dict = pickle.load(fo, encoding='bytes')
-    return dict
+def load_cifar10(dataDir):
+    (train_images, train_labels), _ = tf.keras.datasets.cifar10.load_data()
+    train_images = train_images / 255.0
+    train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) / 255.0  # resize
+    train_labels = to_categorical(train_labels, num_classes=10)
+    return train_images, train_labels
 
-
+def load_cifar100(dataDir):
+    (train_images, train_labels), _ = tf.keras.datasets.cifar100.load_data()
+    train_images = train_images / 255.0
+    train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) / 255.0  # resize
+    train_labels = to_categorical(train_labels, num_classes=100)
+    return train_images, train_labels
 
 
 # Dataset choosing
 print("Dataset:\n1: CIFAR-10\n2: CIFAR-100\n3: ImageNet")
 datasetChoice = input(": ").strip()
 
-dataDir = ""
-class_count = 0
 load_dotenv()
 if datasetChoice == "1":
     dataDir = os.getenv("CIFAR10_DIR")
-    class_count = 10
+    train_images, train_labels = load_cifar10(dataDir)
 elif datasetChoice == "2":
     dataDir = os.getenv("CIFAR100_DIR")
-    class_count = 100
+    train_images, train_labels = load_cifar100(dataDir)
 elif datasetChoice == "3":
     dataDir = os.getenv("ImageNet_DIR")
-    class_count = -1  # I DO NOT KNOW WHAT CLASS COUNT IMAGE NET HAS. PLEASE UPDATE THIS WHEN YOU KNOW!!!
+    # Load ImageNet dataset
 else:
     exit(1)
 
-# Load the images, and the labels.
-data_dict = unpickle(dataDir)
-train_images, train_labels = data_dict[b'data'], data_dict[b'labels']
-train_images = train_images / 255.0
-train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) / 255.0  # resize
-train_labels = to_categorical(train_labels, num_classes=class_count)  # one-hot encode the data
+class_count = len(set(tf.argmax(train_labels, axis=1).numpy())) # Get the actual class count from the dataset
 
 starttime = datetime.now()
 
@@ -76,7 +76,8 @@ subset_indices = [i for i in range(0, int(len(train_images) / 3.0))]  # Replace 
 subset_train_images = train_images[subset_indices]
 subset_train_labels = train_labels[subset_indices]
 
-predator.fit(subset_train_images, subset_train_labels, epochs=1,
+max_epochs_predator = 10
+predator.fit(subset_train_images, subset_train_labels, epochs = 1, # Increase epochs while training
              validation_data=(subset_train_images, subset_train_labels))
 
 predator_predictions = predator.predict(train_images, verbose=0)
@@ -184,15 +185,22 @@ for global_rounds in range(10):
     print(f"{str(datetime.now())} | Training prey...")
     best_individual = train_prey()
 
+
     indices = [round(i) % len(train_images) for i in best_individual]
 
-    print(f"{str(datetime.now())} | Training predator...")
-    # Train the model on the subset
-    predator.fit(train_images[indices], train_labels[indices], epochs=10,
-                 validation_data=(train_images[indices], train_labels[indices]), verbose=0)
-    
+    print(f"{str(datetime.now())} | Training predator with early stopping...")
+
+    # Training predator with early stopping callback
+    early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True) # Can vary patience
+
+    # Train the model on the subset with early stopping
+    predator.fit(train_images[indices], train_labels[indices], epochs = max_epochs_predator,
+                validation_data=(train_images[indices], train_labels[indices]),
+                callbacks=[early_stopping], verbose=1)
+
     print(f"{str(datetime.now())} | Making predictions...")
     predator_predictions = predator.predict(train_images, verbose=0)
+
     print(f"{str(datetime.now())} | Done!")
 
 
