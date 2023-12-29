@@ -51,18 +51,20 @@ starttime = datetime.now()
 
 # Define the model. This is arbitrary, please change if you know what you're doing.
 predator = models.Sequential([
-    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)),
+    layers.Conv2D(64, (3, 3), activation='relu', input_shape=(32, 32, 3)),
     layers.BatchNormalization(),
     layers.MaxPooling2D((2, 2)),
     layers.Conv2D(64, (3, 3), activation='relu'),
     layers.BatchNormalization(),
     layers.MaxPooling2D((2, 2)),
     layers.Flatten(),
-    layers.Dense(512, activation='relu'), # Add more layers for better representation
+    layers.Dense(128, activation='relu'),
     layers.BatchNormalization(),
-    layers.Dropout(0.5),
+    #layers.Dropout(0.5),
     layers.Dense(class_count, activation='softmax'),
 ])
+
+predator.summary()
 
 # Compile the model
 predator.compile(optimizer='adam',
@@ -79,7 +81,7 @@ predator.fit(subset_train_images, subset_train_labels, epochs = 1, # Increase ep
              validation_data=(subset_train_images, subset_train_labels))
 
 predator_predictions = predator.predict(train_images, verbose=0)
-
+print("Predator created...")
 
 # ======= PREY DEFINITION =======
 def evaluate_prey(individual):
@@ -118,7 +120,7 @@ toolbox.register("evaluate", evaluate_prey)
 population = toolbox.population(n=70)
 
 # Set the algorithm parameters
-CXPB, MUTPB, NGEN = 0.7, 0.2, 50 # 
+CXPB, MUTPB, NGEN = 0.7, 0.2, 5
 
 # Evaluate the entire population
 fitnesses = list(map(toolbox.evaluate, population))
@@ -163,8 +165,23 @@ def train_prey():
 
 # ===============================
 
-for global_rounds in range(5):
+print("\n\nCurrently trying to fit 1/5th all data randomly got")
+for global_rounds in range(10):
     print(f"\n{str(datetime.now())} | Round {global_rounds + 1} Begin.")
+
+    # Test
+    #print(f"{str(datetime.now())} | Training predator...")
+    # All
+    #predator.fit(train_images, train_labels, epochs=10, validation_data=(train_images, train_labels), verbose=0)
+    
+    # Selection 
+    #indecies = [i for i in range(0, int(len(train_images / 5)))]        # First selection
+    #indecies = [random.randint(0, len(train_images) - 1) for i in range(int(len(train_images) / 5))] # Random Section
+    #predator.fit(train_images[indecies], train_labels[indecies], epochs=10, validation_data=(train_images[indecies], train_labels[indecies]), verbose=0)
+
+    #continue
+    
+    # Actual
     print(f"{str(datetime.now())} | Training prey...")
     best_individual = train_prey()
 
