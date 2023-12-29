@@ -74,8 +74,8 @@ subset_indices = [i for i in range(0, int(len(train_images) / 3.0))]  # Replace 
 subset_train_images = train_images[subset_indices]
 subset_train_labels = train_labels[subset_indices]
 
-max_epochs_predator = 5
-predator.fit(subset_train_images, subset_train_labels, epochs = max_epochs_predator, # Increase epochs while training
+max_epochs_predator = 10
+predator.fit(subset_train_images, subset_train_labels, epochs = 1, # Increase epochs while training
              validation_data=(subset_train_images, subset_train_labels))
 
 predator_predictions = predator.predict(train_images, verbose=0)
