@@ -165,3 +165,6 @@ wandb/
 # Datasets
 CIFAR10/
 CIFAR100/
+
+# non-public Projects
+GoodPythonProject.py
