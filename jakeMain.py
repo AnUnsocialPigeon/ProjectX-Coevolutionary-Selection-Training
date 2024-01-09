@@ -1,29 +1,74 @@
 import random
+import pickle
 from datetime import datetime
 import os
 from dotenv import load_dotenv
 
 import tensorflow as tf
 from tensorflow.keras import layers, models
+from tensorflow.keras.applications.resnet50 import ResNet50 # Good image model
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 
 from deap import base, creator, tools
 
+# Default values. Can get overwritten in x.config
+global_epochs = 10
+prey_mini_epochs = 5
+prey_partition_size = 0.2
+predator_mini_epochs = 5
+predator_start_epochs = 1
+predator_batch_size = 32
 
-def load_cifar10(dataDir):
-    (train_images, train_labels), _ = tf.keras.datasets.cifar10.load_data()
-    train_images = train_images / 255.0
-    train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) / 255.0  # resize
-    train_labels = to_categorical(train_labels, num_classes=10)
-    return train_images, train_labels
+# Obtaining values from config file
+try:
+    with open('x.config') as file:
+        for line in file:
+            try:
+                parts = file.split(':')
+                if parts[0] == "Global Epochs":
+                    global_epochs = int(parts[1])
+                elif parts[0] == "Prey Mini Epochs":
+                    prey_mini_epochs = int(parts[1])
+                elif parts[0] == "Predator Mini Epochs":
+                    predator_mini_epochs = int(parts[1])
+                elif parts[0] == "Predator Start Epochs":
+                    predator_start_epochs = int(parts[1])
+                elif parts[0] == "Predator Batch Size":
+                    predator_batch_size = int(parts[1])
+                elif parts[0] == "Prey Partition Size":
+                    prey_partition_size = float(parts[1])
+                else:
+                    print("Unrecognised line: " + str(line))                    
+            except Exception as e:
+                print(e)
+except FileNotFoundError as e:
+    print(e)
 
-def load_cifar100(dataDir):
-    (train_images, train_labels), _ = tf.keras.datasets.cifar100.load_data()
-    train_images = train_images / 255.0
-    train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) / 255.0  # resize
-    train_labels = to_categorical(train_labels, num_classes=100)
-    return train_images, train_labels
+print("Proceding with the following values:")
+print(f"Global Epochs: {global_epochs}")
+print(f"Prey Mini Epochs: {prey_mini_epochs}")
+print(f"Prey Partition Size: {prey_partition_size}")
+print(f"Predator Mini Epochs: {predator_mini_epochs}")
+print(f"Predator Start Epochs: {predator_start_epochs}")
+print(f"Predator Batch Size: {predator_batch_size}")
+
+
+def unpickle(file):
+    with open(file, 'rb') as fo:
+        dict = pickle.load(fo, encoding='bytes')
+    return dict
+
+def log_indecies(indecies):
+    # Log indecies for debug
+    print(f"{str(datetime.now())} | Outputting indecies to log file")
+    with open('indicesLog.txt', 'a') as file:
+        file.write(', '.join(map(str, indecies)) + '\n')
+    print(f"{str(datetime.now())} | Done")
+
+# Clear log file
+with open('indicesLog.txt', 'w'): 
+    pass
 
 
 # Dataset choosing
@@ -33,36 +78,50 @@ datasetChoice = input(": ").strip()
 load_dotenv()
 if datasetChoice == "1":
     dataDir = os.getenv("CIFAR10_DIR")
-    train_images, train_labels = load_cifar10(dataDir)
+    class_count = 10
 elif datasetChoice == "2":
     dataDir = os.getenv("CIFAR100_DIR")
-    train_images, train_labels = load_cifar100(dataDir)
+    class_count = 100
 elif datasetChoice == "3":
     dataDir = os.getenv("ImageNet_DIR")
     # Load ImageNet dataset
 else:
     exit(1)
 
-class_count = len(set(tf.argmax(train_labels, axis=1).numpy())) # Get the actual class count from the dataset
+data_dict = unpickle(dataDir)
+train_images, train_labels = data_dict[b'data'], data_dict[b'labels']
+train_images = train_images / 255.0
+train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) / 255.0  # resize
+train_labels = to_categorical(train_labels, num_classes=class_count)  # one-hot encode the data
+# train_labels = tf.squeeze(train_labels)
 
 starttime = datetime.now()
 
 # ======= PREDATOR DEFINITION =======
 
 # Define the model. This is arbitrary, please change if you know what you're doing.
-predator = models.Sequential([
-    layers.Conv2D(64, (3, 3), activation='relu', input_shape=(32, 32, 3)),
-    layers.BatchNormalization(),
-    layers.MaxPooling2D((2, 2)),
-    layers.Conv2D(64, (3, 3), activation='relu'),
-    layers.BatchNormalization(),
-    layers.MaxPooling2D((2, 2)),
-    layers.Flatten(),
-    layers.Dense(128, activation='relu'),
-    layers.BatchNormalization(),
-    #layers.Dropout(0.5),
-    layers.Dense(class_count, activation='softmax'),
-])
+
+# # Model = Sequential. 
+# predator = models.Sequential([
+#     layers.Conv2D(64, (3, 3), activation='relu', input_shape=(32, 32, 3)),
+#     layers.BatchNormalization(),
+#     layers.MaxPooling2D((2, 2)),
+#     layers.Conv2D(64, (3, 3), activation='relu'),
+#     layers.BatchNormalization(),
+#     layers.MaxPooling2D((2, 2)),
+#     layers.Flatten(),
+#     layers.Dense(128, activation='relu'),
+#     layers.BatchNormalization(),
+#     #layers.Dropout(0.5),
+#     layers.Dense(class_count, activation='softmax'),
+# ])
+
+# # Model = ResNet50
+predator = ResNet50(
+    weights = None,
+    input_shape = (32,32,3),
+    classes = class_count
+)
 
 predator.summary()
 
@@ -76,9 +135,14 @@ subset_indices = [i for i in range(0, int(len(train_images) / 3.0))]  # Replace 
 subset_train_images = train_images[subset_indices]
 subset_train_labels = train_labels[subset_indices]
 
-max_epochs_predator = 10
-predator.fit(subset_train_images, subset_train_labels, epochs = 1, # Increase epochs while training
-             validation_data=(subset_train_images, subset_train_labels))
+max_epochs_predator = 1
+predator.fit(
+    subset_train_images, 
+    subset_train_labels, 
+    epochs = max_epochs_predator, # Increase epochs while training
+    batch_size = 64,
+    validation_data = (subset_train_images, subset_train_labels)
+)
 
 predator_predictions = predator.predict(train_images, verbose=0)
 print("Predator created...")
@@ -112,7 +176,7 @@ toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.att
                  n=int(len(train_images) / 5.0))  # Change this to subset size. I've chosen 1/3rd arbitrarily.
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 toolbox.register("mate", tools.cxTwoPoint)
-toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.2)
+toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1400, indpb=1)    
 toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("evaluate", evaluate_prey)
 
@@ -166,7 +230,7 @@ def train_prey():
 # ===============================
 
 print("\n\nCurrently trying to fit 1/5th all data randomly got")
-for global_rounds in range(10):
+for global_rounds in range(3):
     print(f"\n{str(datetime.now())} | Round {global_rounds + 1} Begin.")
 
     # Test
@@ -176,10 +240,12 @@ for global_rounds in range(10):
     
     # Selection 
     #indecies = [i for i in range(0, int(len(train_images / 5)))]        # First selection
-    #indecies = [random.randint(0, len(train_images) - 1) for i in range(int(len(train_images) / 5))] # Random Section
-    #predator.fit(train_images[indecies], train_labels[indecies], epochs=10, validation_data=(train_images[indecies], train_labels[indecies]), verbose=0)
+    # indecies = [random.randint(0, len(train_images) - 1) for i in range(int(len(train_images) / 5))] # Random Section
+    # predator.fit(train_images[indecies], train_labels[indecies], epochs=10, validation_data=(train_images[indecies], train_labels[indecies]), verbose=0)
 
-    #continue
+
+    # log_indecies(indecies)    
+    # continue
     
     # Actual
     print(f"{str(datetime.now())} | Training prey...")
@@ -189,6 +255,7 @@ for global_rounds in range(10):
     indices = [round(i) % len(train_images) for i in best_individual]
 
     print(f"{str(datetime.now())} | Training predator with early stopping...")
+    log_indecies(indices)
 
     # Training predator with early stopping callback
     early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True) # Can vary patience
@@ -197,7 +264,13 @@ for global_rounds in range(10):
     predator.fit(train_images[indices], train_labels[indices], epochs = max_epochs_predator,
                 validation_data=(train_images[indices], train_labels[indices]),
                 callbacks=[early_stopping], verbose=1)
+    
+    # Log indecies for debug
+    # print(f"{str(datetime.now())} | Outputting indecies to log file")
+    # with open('indicesLog.txt', 'a') as file:
+    #     file.write(', '.join(map(str, indices)) + '\n')
 
+    # Predict
     print(f"{str(datetime.now())} | Making predictions...")
     predator_predictions = predator.predict(train_images, verbose=0)
 
