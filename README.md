@@ -1,5 +1,5 @@
 # DEAP-evo-example
-A basic DEAP algorithm in python to figure out how it works
+
 
 # How to make it work
 1. Create a .env file

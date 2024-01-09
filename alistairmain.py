@@ -136,14 +136,14 @@ def evaluate_prey(individual):
 
     # return predator.evaluate(train_images[indices], train_labels[indices])
 
-    f1 = f1_score(true_labels, predicted_labels, average='weighted') # Will account for the class imbalance and the false positives and negatives of your model
+    # f1 = f1_score(true_labels, predicted_labels, average='weighted') # Will account for the class imbalance and the false positives and negatives of your model
 
 
     # print("Predicted : ", predicted_labels)
     # print("Data given: ", true_labels)
     # print("Accuracy  : ", accuracy.numpy())
     # input()
-    return 1 - f1   # was numpy.average()
+    return 1 - np.average()
 
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
