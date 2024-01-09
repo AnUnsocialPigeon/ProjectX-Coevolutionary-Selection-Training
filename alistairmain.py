@@ -13,7 +13,6 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 from efficientnet.tfkeras import EfficientNetB0
 
-
 from deap import base, creator, tools
 
 
@@ -96,8 +95,8 @@ starttime = datetime.now()
 # ======= PREDATOR DEFINITION =======
 
 # # Model = ResNet50
-# predator = ResNet50(
-predator = EfficientNetB0(
+predator = ResNet50(
+# predator = EfficientNetB0(
     weights = None,
     input_shape = (32,32,3),
     classes = class_count
