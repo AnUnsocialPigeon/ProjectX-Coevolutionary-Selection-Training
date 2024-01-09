@@ -12,6 +12,47 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 from deap import base, creator, tools
 
+# Default values. Can get overwritten in x.config
+global_epochs = 10
+prey_mini_epochs = 5
+prey_partition_size = 0.2
+predator_mini_epochs = 5
+predator_start_epochs = 1
+predator_batch_size = 32
+
+# Obtaining values from config file
+try:
+    with open('x.config') as file:
+        for line in file:
+            try:
+                parts = file.split(':')
+                if parts[0] == "Global Epochs":
+                    global_epochs = int(parts[1])
+                elif parts[0] == "Prey Mini Epochs":
+                    prey_mini_epochs = int(parts[1])
+                elif parts[0] == "Predator Mini Epochs":
+                    predator_mini_epochs = int(parts[1])
+                elif parts[0] == "Predator Start Epochs":
+                    predator_start_epochs = int(parts[1])
+                elif parts[0] == "Predator Batch Size":
+                    predator_batch_size = int(parts[1])
+                elif parts[0] == "Prey Partition Size":
+                    prey_partition_size = float(parts[1])
+                else:
+                    print("Unrecognised line: " + str(line))                    
+            except Exception as e:
+                print(e)
+except FileNotFoundError as e:
+    print(e)
+
+print("Proceding with the following values:")
+print(f"Global Epochs: {global_epochs}")
+print(f"Prey Mini Epochs: {prey_mini_epochs}")
+print(f"Prey Partition Size: {prey_partition_size}")
+print(f"Predator Mini Epochs: {predator_mini_epochs}")
+print(f"Predator Start Epochs: {predator_start_epochs}")
+print(f"Predator Batch Size: {predator_batch_size}")
+
 
 def unpickle(file):
     with open(file, 'rb') as fo:
@@ -94,11 +135,11 @@ subset_indices = [i for i in range(0, int(len(train_images) / 3.0))]  # Replace 
 subset_train_images = train_images[subset_indices]
 subset_train_labels = train_labels[subset_indices]
 
-max_epochs_predator = 10
+max_epochs_predator = 1
 predator.fit(
     subset_train_images, 
     subset_train_labels, 
-    epochs = 1, # Increase epochs while training
+    epochs = max_epochs_predator, # Increase epochs while training
     batch_size = 64,
     validation_data = (subset_train_images, subset_train_labels)
 )
@@ -225,9 +266,9 @@ for global_rounds in range(3):
                 callbacks=[early_stopping], verbose=1)
     
     # Log indecies for debug
-    print(f"{str(datetime.now())} | Outputting indecies to log file")
-    with open('indicesLog.txt', 'a') as file:
-        file.write(', '.join(map(str, indices)) + '\n')
+    # print(f"{str(datetime.now())} | Outputting indecies to log file")
+    # with open('indicesLog.txt', 'a') as file:
+    #     file.write(', '.join(map(str, indices)) + '\n')
 
     # Predict
     print(f"{str(datetime.now())} | Making predictions...")
