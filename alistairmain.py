@@ -4,12 +4,15 @@ from datetime import datetime
 import os
 import numpy as np
 from sklearn.utils import shuffle
+from sklearn.metrics import f1_score
 
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.applications.resnet50 import ResNet50 # Good image model
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
+from efficientnet.tfkeras import EfficientNetB0
+
 
 from deap import base, creator, tools
 
@@ -93,7 +96,8 @@ starttime = datetime.now()
 # ======= PREDATOR DEFINITION =======
 
 # # Model = ResNet50
-predator = ResNet50(
+# predator = ResNet50(
+predator = EfficientNetB0(
     weights = None,
     input_shape = (32,32,3),
     classes = class_count
@@ -133,11 +137,14 @@ def evaluate_prey(individual):
 
     # return predator.evaluate(train_images[indices], train_labels[indices])
 
+    f1 = f1_score(true_labels, predicted_labels, average='weighted') # Will account for the class imbalance and the false positives and negatives of your model
+
+
     # print("Predicted : ", predicted_labels)
     # print("Data given: ", true_labels)
     # print("Accuracy  : ", accuracy.numpy())
     # input()
-    return 1 - accuracy.numpy()
+    return 1 - f1   # was numpy.average()
 
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
