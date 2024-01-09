@@ -33,7 +33,7 @@ with open('indicesLog.txt', 'w'):
 # Default values. Can get overwritten in x.config
 global_epochs = 10
 prey_mini_epochs = 5
-prey_partition_size = 0.2
+prey_partition_size = 1.0
 predator_mini_epochs = 5
 predator_start_epochs = 1
 predator_batch_size = 32
@@ -156,7 +156,7 @@ toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("evaluate", evaluate_prey)
 
 # Create an initial population
-population = toolbox.population(n=70)
+population = toolbox.population(n=200)
 
 # Set the algorithm parameters
 CXPB, MUTPB, NGEN = 0.7, 0.2, prey_mini_epochs
