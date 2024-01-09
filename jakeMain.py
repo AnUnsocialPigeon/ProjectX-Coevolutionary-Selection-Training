@@ -7,8 +7,11 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
+# Import EfficientNet (shown to have higher accuracy than ResNet50 with fewer parameters)
+from efficientnet.tfkeras import EfficientNetB0
+from sklearn.metrics import f1_score
 
-from deap import base, creator, tools
+from deap import base, creator, tools, algorithms
 
 
 def load_cifar10(dataDir):
@@ -25,6 +28,16 @@ def load_cifar100(dataDir):
     train_labels = to_categorical(train_labels, num_classes=100)
     return train_images, train_labels
 
+def log_indecies(indecies):
+    # Log indecies for debug
+    print(f"{str(datetime.now())} | Outputting indecies to log file")
+    with open('indicesLog.txt', 'a') as file:
+        file.write(', '.join(map(str, indecies)) + '\n')
+    print(f"{str(datetime.now())} | Done")
+
+# Clear log file
+with open('indicesLog.txt', 'w'): 
+    pass
 
 # Dataset choosing
 print("Dataset:\n1: CIFAR-10\n2: CIFAR-100\n3: ImageNet")
@@ -49,20 +62,34 @@ starttime = datetime.now()
 
 # ======= PREDATOR DEFINITION =======
 
-# Define the model. This is arbitrary, please change if you know what you're doing.
-predator = models.Sequential([
-    layers.Conv2D(64, (3, 3), activation='relu', input_shape=(32, 32, 3)),
-    layers.BatchNormalization(),
-    layers.MaxPooling2D((2, 2)),
-    layers.Conv2D(64, (3, 3), activation='relu'),
-    layers.BatchNormalization(),
-    layers.MaxPooling2D((2, 2)),
-    layers.Flatten(),
-    layers.Dense(128, activation='relu'),
-    layers.BatchNormalization(),
-    #layers.Dropout(0.5),
-    layers.Dense(class_count, activation='softmax'),
-])
+# # # Define the model. This is arbitrary, please change if you know what you're doing. - OLD
+# # predator = models.Sequential([
+# #     layers.Conv2D(64, (3, 3), activation='relu', input_shape=(32, 32, 3)),
+# #     layers.BatchNormalization(),
+# #     layers.MaxPooling2D((2, 2)),
+# #     layers.Conv2D(64, (3, 3), activation='relu'),
+# #     layers.BatchNormalization(),
+# #     layers.MaxPooling2D((2, 2)),
+# #     layers.Flatten(),
+# #     layers.Dense(128, activation='relu'),
+# #     layers.BatchNormalization(),
+# #     #layers.Dropout(0.5),
+# #     layers.Dense(class_count, activation='softmax'),
+# # ])
+
+# # predator.summary()
+
+# # # Compile the model
+# # predator.compile(optimizer='adam',
+# #                  loss='categorical_crossentropy',
+# #                  metrics=['accuracy'])
+
+# Replace ResNet50 with EfficientNet
+predator = EfficientNetB0(
+    weights=None,
+    input_shape=(32, 32, 3),
+    classes=class_count
+)
 
 predator.summary()
 
@@ -98,7 +125,10 @@ def evaluate_prey(individual):
     # print("Data given: ", true_labels)
     # print("Accuracy  : ", accuracy.numpy())
     # input()
-    return 1 - accuracy.numpy()
+    # Calculate F1-score
+    f1 = f1_score(true_labels, predicted_labels, average='weighted') # Will account for the class imbalance and the false positives and negatives of your model
+
+    return 1 - f1
 
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -111,16 +141,20 @@ toolbox.register("attribute", random.random)
 toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attribute,
                  n=int(len(train_images) / 5.0))  # Change this to subset size. I've chosen 1/3rd arbitrarily.
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-toolbox.register("mate", tools.cxTwoPoint)
-toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.2)
-toolbox.register("select", tools.selTournament, tournsize=3)
+
+algorithm = algorithms.nsga2 # NSGA-II, which is a multi-objective evolutionary algorithm that can optimise both accuracy and complexity of the DNNs (Note the paper uses DES)
+toolbox.register("mate", tools.cxSimulatedBinaryBounded, low=0, up=1, eta=20.0)
+toolbox.register("mutate", tools.mutPolynomialBounded, low=0, up=1, eta=20.0, indpb=0.2)
+toolbox.register("select", tools.selNSGA2)
+
 toolbox.register("evaluate", evaluate_prey)
+
 
 # Create an initial population
 population = toolbox.population(n=70)
 
 # Set the algorithm parameters
-CXPB, MUTPB, NGEN = 0.7, 0.2, 5
+MU, CXPB, MUTPB, NGEN = 70, 0.7, 0.2, 5
 
 # Evaluate the entire population
 fitnesses = list(map(toolbox.evaluate, population))
@@ -132,7 +166,7 @@ def train_prey():
     # Begin the evolution
     for gen in range(NGEN):
         # Select the next generation individuals
-        offspring = toolbox.select(population, len(population))
+        offspring = algorithm.select(population, MU)
 
         # Clone the selected individuals
         offspring = list(map(toolbox.clone, offspring))
