@@ -43,7 +43,7 @@ try:
     with open('x.config') as file:
         for line in file:
             try:
-                parts = file.split(':')
+                parts = line.split(':')
                 if parts[0] == "Global Epochs":
                     global_epochs = int(parts[1])
                 elif parts[0] == "Prey Mini Epochs":
@@ -56,14 +56,25 @@ try:
                     prey_partition_size = float(parts[1])
                 elif parts[0] == "Predator Batch Size":
                     predator_batch_size = int(parts[1])
+                else:
+                    print("Unrecognised config line: " + str(line))                    
             except Exception as e:
                 print(e)
 except FileNotFoundError as e:
     print(e)
 
+
+print("Proceding with the following values:")
+print(f"Global Epochs: {global_epochs}")
+print(f"Prey Mini Epochs: {prey_mini_epochs}")
+print(f"Prey Partition Size: {prey_partition_size}")
+print(f"Predator Mini Epochs: {predator_mini_epochs}")
+print(f"Predator Start Epochs: {predator_start_epochs}")
+print(f"Predator Batch Size: {predator_batch_size}")
+
 class_count = 100
 
-data_dict = unpickle(r"cifar-100-python/train")
+data_dict = unpickle(os.getenv("CIFAR100_DIR"))
 train_images, train_labels = data_dict[b'data'], data_dict[b'fine_labels']
 train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) # resize
 
