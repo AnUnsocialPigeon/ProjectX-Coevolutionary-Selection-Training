@@ -319,7 +319,7 @@ print(f"That took {str(endtime - starttime)}")
 
 
 # Append the logs that have been generated to the end of the log file
-import loggingGraph
+import loggymclogface
 
-timestamps, memory_usage, cpu_usage, gpu_usage, phases = loggingGraph.read_usage_log(logging_file_dir)
-loggingGraph.plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases)
+timestamps, memory_usage, cpu_usage, gpu_usage, phases = loggymclogface.read_usage_log(logging_file_dir)
+loggymclogface.plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases)
