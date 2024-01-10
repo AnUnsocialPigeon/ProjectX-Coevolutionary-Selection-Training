@@ -293,11 +293,6 @@ for global_rounds in range(global_epochs):
     # Train the model on the subset with early stopping
     predator.fit(train_images[indices], train_labels[indices], epochs = predator_mini_epochs, verbose=1, callbacks=callbacks, batch_size=predator_batch_size)
 
-    # Log indecies for debug
-    print(f"{str(datetime.now())} | Outputting indices to log file")
-    with open('indicesLog.txt', 'a') as file:
-        file.write(', '.join(map(str, indices)) + '\n')
-
     # Predict
     print(f"{str(datetime.now())} | Making predictions...")
     predator_predictions = predator.predict(train_images, verbose=0)

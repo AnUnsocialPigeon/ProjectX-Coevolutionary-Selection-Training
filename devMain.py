@@ -18,6 +18,55 @@ from tensorflow.keras.applications import EfficientNetB7
 
 from deap import base, creator, tools, algorithms
 
+import threading
+import psutil
+import time
+
+current_phase = 'none'
+
+stop_logging = threading.Event()
+
+try:
+    import pynvml
+    pynvml.nvmlInit()
+except ImportError:
+    print("pynvml not available, GPU logging will not be included.")
+
+def continual_logging(file_path, interval=1, stop_event=None):
+    global current_phase
+    global logging_file_dir
+
+    while os.path.isfile(file_path):
+        file_path += ".log"
+
+    logging_file_dir = file_path
+
+    with open(file_path, 'w') as file:  # Open the file once and write headers
+        file.write("timestamp, memory_usage_mb, cpu_usage_percent, gpu_usage_percent, phase\n")
+
+    while not stop_event.is_set():
+        # Memory usage in MB
+        memory_usage = psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024)
+        # CPU usage in percent
+        cpu_usage = psutil.cpu_percent(interval=None)
+
+        log_message = f"{datetime.now()}, {memory_usage}, {cpu_usage}"
+
+        # GPU usage in percent if enabled
+        try:
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # 0 for the first GPU
+            gpu_util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+            gpu_usage = gpu_util.gpu
+            log_message += f", {gpu_usage}"
+        except pynvml.NVMLError as e:
+            log_message += ", N/A"
+            print(e)
+
+        # Add the phase to the log message
+        log_message += f", {current_phase}\n"
+        with open(file_path, 'a') as file:
+            file.write(log_message)
+        time.sleep(interval)
 
 def load_cifar10():
     (train_images, train_labels), _ = tf.keras.datasets.cifar10.load_data()
@@ -63,25 +112,11 @@ print(f"Predator Mini Epochs: {predator_mini_epochs}")
 print(f"Predator Start Epochs: {predator_start_epochs}")
 print(f"Predator Batch Size: {predator_batch_size}")
 
-# Dataset choosing
-print("Dataset:\n1: CIFAR-10\n2: CIFAR-100\n3: ImageNet")
-datasetChoice = "2"
-
 load_dotenv()
 
-if datasetChoice == "1":
-    data_dict = os.getenv("CIFAR10_DIR")
-    train_images, train_labels = load_cifar10()
-    class_count = 10
-elif datasetChoice == "2":
-    data_dict = os.getenv("CIFAR100_DIR")
-    train_images, train_labels = load_cifar100()
-    class_count = 100
-elif datasetChoice == "3":
-    data_dict = os.getenv("ImageNet_DIR")
-    # Load ImageNet dataset
-else:
-    exit(1)
+# Dataset choosing
+train_images, train_labels = load_cifar100()
+class_count = 100
 
 train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) # resize
 
@@ -96,6 +131,8 @@ train_images, train_labels = shuffle(train_images, train_labels, random_state=1)
 # train_labels = tf.squeeze(train_labels)
 
 starttime = datetime.now()
+logging_thread = threading.Thread(target=continual_logging, args=('usage_log.txt', 1, stop_logging))
+logging_thread.start()
 
 # ======= PREDATOR DEFINITION =======
 
@@ -276,30 +313,19 @@ class TerminateOnBaseline(Callback):
 
 print("\n\nCurrently trying to fit 1/5th all data randomly got")
 for global_rounds in range(global_epochs):
+    current_round = global_rounds
     print(f"\n{str(datetime.now())} | Round {global_rounds + 1} Begin.")
 
-    # Test
-    #print(f"{str(datetime.now())} | Training predator...")
-    # All
-    #predator.fit(train_images, train_labels, epochs=10, validation_data=(train_images, train_labels), verbose=0)
-
-    # Selection
-    #indecies = [i for i in range(0, int(len(train_images / 5)))]        # First selection
-    # indecies = [random.randint(0, len(train_images) - 1) for i in range(int(len(train_images) / 5))] # Random Section
-    # predator.fit(train_images[indecies], train_labels[indecies], epochs=10, validation_data=(train_images[indecies], train_labels[indecies]), verbose=0)
-
-
-    # log_indecies(indecies)
-    # continue
-
     # Actual
+    current_phase = 'prey'
     print(f"{str(datetime.now())} | Training prey...")
     best_individual = train_prey()
 
     indices = [round(i) % len(train_images) for i in best_individual]
 
     print(f"{str(datetime.now())} | Training predator with early stopping...")
-    log_indecies(indices)
+    # log_indecies(indices)
+    current_phase = 'predator'
 
     # Training predator with early stopping callback
     callbacks = [TerminateOnBaseline(monitor="accuracy",baseline=1.0)]
@@ -307,14 +333,11 @@ for global_rounds in range(global_epochs):
     # Train the model on the subset with early stopping
     predator.fit(train_images[indices], train_labels[indices], epochs = predator_mini_epochs, verbose=1, callbacks=callbacks, batch_size=predator_batch_size)
 
-    # Log indecies for debug
-    print(f"{str(datetime.now())} | Outputting indices to log file")
-    with open('indicesLog.txt', 'a') as file:
-        file.write(', '.join(map(str, indices)) + '\n')
-
     # Predict
     print(f"{str(datetime.now())} | Making predictions...")
     predator_predictions = predator.predict(train_images, verbose=0)
+    # full_loss, full_acc = predator.evaluate(train_images, train_labels)
+    # print(f"{str(datetime.now())} | Train accuracy: {full_acc}")
 
     print(f"{str(datetime.now())} | Done!")
 
@@ -322,6 +345,14 @@ for global_rounds in range(global_epochs):
 full_loss, full_acc = predator.evaluate(train_images, train_labels)
 
 endtime = datetime.now()
+stop_logging.set()
+logging_thread.join()
 
 print(f"{str(datetime.now())} | Train accuracy: {full_acc}")
 print(f"That took {str(endtime - starttime)}")
+
+# Append the logs that have been generated to the end of the log file
+import loggymclogface
+
+timestamps, memory_usage, cpu_usage, gpu_usage, phases = loggymclogface.read_usage_log(logging_file_dir)
+loggymclogface.plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases)
