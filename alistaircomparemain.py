@@ -9,11 +9,13 @@ from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
 from tensorflow.keras import layers, models
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Activation, Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization, GlobalAveragePooling2D
 from tensorflow.keras.applications.resnet50 import ResNet50 # Good image model
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 #from efficientnet.tfkeras import EfficientNetB0
-from tensorflow.keras.applications.efficientnet import EfficientNetB7
+from tensorflow.keras.applications.efficientnet import EfficientNetB0
 from tensorflow.keras import optimizers
 
 from deap import base, creator, tools
@@ -97,16 +99,74 @@ starttime = datetime.now()
 
 # # Model = ResNet50 or EfficientNetB0
 #predator = ResNet50(
-predator = EfficientNetB7(
-    weights = None,
-    input_shape = (32,32,3),
-    classes = class_count
-)
+#base_model = EfficientNetB0(
+#    weights = "imagenet",
+#    include_top=False,
+#    input_shape = (32,32,3),
+#    classes = class_count
+#)
 
+#predator = Sequential()
+#predator.add(base_model)
+#predator.add(GlobalAveragePooling2D())
+#predator.add(Dropout(0.5))
+#predator.add(Dense(class_count, activation='softmax'))
+#predator.summary()
+
+# Batch norm model 4
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.initializers import RandomNormal, Constant
+predator = Sequential()
+
+predator.add(Conv2D(256,(3,3),padding='same',input_shape=(32,32,3)))
+predator.add(BatchNormalization())
+predator.add(Activation('relu'))
+predator.add(Conv2D(256,(3,3),padding='same'))
+predator.add(BatchNormalization())
+predator.add(Activation('relu'))
+predator.add(MaxPooling2D(pool_size=(2,2)))
+predator.add(Dropout(0.2))
+
+predator.add(Conv2D(512,(3,3),padding='same'))
+predator.add(BatchNormalization())
+predator.add(Activation('relu'))
+predator.add(Conv2D(512,(3,3),padding='same'))
+predator.add(BatchNormalization())
+predator.add(Activation('relu'))
+predator.add(MaxPooling2D(pool_size=(2,2)))
+predator.add(Dropout(0.2))
+
+predator.add(Conv2D(512,(3,3),padding='same'))
+predator.add(BatchNormalization())
+predator.add(Activation('relu'))
+predator.add(Conv2D(512,(3,3),padding='same'))
+predator.add(BatchNormalization())
+predator.add(Activation('relu'))
+predator.add(MaxPooling2D(pool_size=(2,2)))
+predator.add(Dropout(0.2))
+
+predator.add(Conv2D(512,(3,3),padding='same'))
+predator.add(BatchNormalization())
+predator.add(Activation('relu'))
+predator.add(Conv2D(512,(3,3),padding='same'))
+predator.add(BatchNormalization())
+predator.add(Activation('relu'))
+predator.add(MaxPooling2D(pool_size=(2,2)))
+predator.add(Dropout(0.2))
+
+predator.add(Flatten())
+predator.add(Dense(1024))
+predator.add(Activation('relu'))
+predator.add(Dropout(0.2))
+predator.add(BatchNormalization(momentum=0.95, 
+        epsilon=0.005,
+        beta_initializer=RandomNormal(mean=0.0, stddev=0.05), 
+        gamma_initializer=Constant(value=0.9)))
+predator.add(Dense(20,activation='softmax'))
 predator.summary()
 
 # Compile the model
-predator.compile(optimizer=optimizers.RMSprop(learning_rate=1e-4),
+predator.compile(optimizer='adam',
                  loss=tf.keras.losses.CategoricalCrossentropy(),
                  metrics=['accuracy'])
 
