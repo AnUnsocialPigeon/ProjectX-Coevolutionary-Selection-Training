@@ -9,6 +9,8 @@ with open(fileDir, "r") as file:
     # Skip the first line
     for line in file:
         lineCount += 1
+        if lineCount % 2 == 0:
+            continue
         if lineCount == 1:
             for i in line.split(', '):
                 if int(i) > 1:

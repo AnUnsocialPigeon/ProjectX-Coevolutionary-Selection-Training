@@ -63,4 +63,6 @@ def plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases):
     plt.xlabel('Time')
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.show()
+    
+    plt.savefig('output.png')
+    
