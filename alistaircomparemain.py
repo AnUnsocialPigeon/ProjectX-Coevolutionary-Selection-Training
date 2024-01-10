@@ -20,6 +20,56 @@ from tensorflow.keras import optimizers
 
 from deap import base, creator, tools
 
+import threading
+import psutil
+import time
+
+current_phase = 'none'
+
+stop_logging = threading.Event()
+
+try:
+    import pynvml
+    pynvml.nvmlInit()
+except ImportError:
+    print("pynvml not available, GPU logging will not be included.")
+
+def continual_logging(file_path, interval=1, stop_event=None):
+    global current_phase
+    global logging_file_dir
+
+    while os.path.isfile(file_path):
+        file_path += ".log"
+
+    logging_file_dir = file_path
+
+    with open(file_path, 'w') as file:  # Open the file once and write headers
+        file.write("timestamp, memory_usage_mb, cpu_usage_percent, gpu_usage_percent, phase\n")
+
+    while not stop_event.is_set():
+        # Memory usage in MB
+        memory_usage = psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024)
+        # CPU usage in percent
+        cpu_usage = psutil.cpu_percent(interval=None)
+
+        log_message = f"{datetime.now()}, {memory_usage}, {cpu_usage}"
+
+        # GPU usage in percent if enabled
+        try:
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # 0 for the first GPU
+            gpu_util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+            gpu_usage = gpu_util.gpu
+            log_message += f", {gpu_usage}"
+        except pynvml.NVMLError as e:
+            log_message += ", N/A"
+            print(e)
+
+        # Add the phase to the log message
+        log_message += f", {current_phase}\n"
+        with open(file_path, 'a') as file:
+            file.write(log_message)
+        time.sleep(interval)
+
 
 def unpickle(file):
     with open(file, 'rb') as fo:
@@ -65,6 +115,8 @@ train_images, train_labels = shuffle(train_images, train_labels, random_state=1)
 train_images, val_images, train_labels, val_labels = train_test_split(train_images, train_labels, test_size=0.2, random_state=1)
 
 starttime = datetime.now()
+logging_thread = threading.Thread(target=continual_logging, args=('usage_log.txt', 1, stop_logging))
+logging_thread.start()
 
 # ======= PREDATOR DEFINITION =======
 
@@ -130,6 +182,8 @@ print("Predator created...")
 # ===============================
 
 for global_rounds in range(global_epochs):
+    current_round = global_rounds
+    current_phase = 'predator'
     print(f"\n{str(datetime.now())} | Round {global_rounds + 1} Begin.")
 
     # Train the model on the subset with early stopping
@@ -139,9 +193,19 @@ for global_rounds in range(global_epochs):
 train_loss, train_acc = predator.evaluate(train_images, train_labels)
 
 endtime = datetime.now()
+stop_logging.set()
+logging_thread.join()
+
 
 print(f"{str(datetime.now())} | Train accuracy: {train_acc}")
 print(f"That took {str(endtime - starttime)}")
+
+
+import loggymclogface
+
+timestamps, memory_usage, cpu_usage, gpu_usage, phases = loggymclogface.read_usage_log(logging_file_dir)
+loggymclogface.plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases)
+
 
 val_loss, val_acc = predator.evaluate(val_images, val_labels)
 
