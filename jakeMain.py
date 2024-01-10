@@ -11,19 +11,19 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 # Import EfficientNet (shown to have higher accuracy than ResNet50 with fewer parameters)
 from efficientnet.tfkeras import EfficientNetB0
-from sklearn.metrics import f1_score
+from tensorflow.keras.applications.resnet50 import ResNet50
 
 from deap import base, creator, tools, algorithms
 
 
-def load_cifar10(dataDir):
+def load_cifar10():
     (train_images, train_labels), _ = tf.keras.datasets.cifar10.load_data()
     # train_images = train_images / 255.0
     # train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) / 255.0  # resize
     # train_labels = to_categorical(train_labels, num_classes=10)
     return train_images, train_labels
 
-def load_cifar100(dataDir):
+def load_cifar100():
     (train_images, train_labels), _ = tf.keras.datasets.cifar100.load_data()
     # train_images = train_images / 255.0
     # train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) / 255.0  # resize
@@ -43,10 +43,10 @@ with open('indicesLog.txt', 'w'):
 
 
 # Default values. Can get overwritten in x.config
-global_epochs = 10
-prey_mini_epochs = 5
-prey_partition_size = 0.2
-predator_mini_epochs = 5
+global_epochs = 15
+prey_mini_epochs = 10
+prey_partition_size = 0.25
+predator_mini_epochs = 10
 predator_start_epochs = 1
 predator_batch_size = 32
 
@@ -62,16 +62,17 @@ print(f"Predator Batch Size: {predator_batch_size}")
 
 # Dataset choosing
 print("Dataset:\n1: CIFAR-10\n2: CIFAR-100\n3: ImageNet")
-datasetChoice = input(": ").strip()
+datasetChoice = "2"
 
 load_dotenv()
+
 if datasetChoice == "1":
     data_dict = os.getenv("CIFAR10_DIR")
-    train_images, train_labels = load_cifar10(dataDir)
+    train_images, train_labels = load_cifar10()
     class_count = 10
 elif datasetChoice == "2":
     data_dict = os.getenv("CIFAR100_DIR")
-    train_images, train_labels = load_cifar100(dataDir)
+    train_images, train_labels = load_cifar100()
     class_count = 100
 elif datasetChoice == "3":
     data_dict = os.getenv("ImageNet_DIR")
@@ -139,11 +140,9 @@ def evaluate_prey(individual):
     # print("Predicted : ", predicted_labels)
     # print("Data given: ", true_labels)
     # print("Accuracy  : ", accuracy.numpy())
-    # input()
-    print(f"Score: {accuracy}")
-    f1 = f1_score(true_labels, predicted_labels, average='weighted') # Will account for the class imbalance and the false positives and negatives of your model
-    print(f"F1: {f1}")
-    return 1 - accuracy
+    # input(
+    
+    return 1 - accuracy.numpy()
 
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -151,7 +150,7 @@ creator.create("Individual", list, fitness=creator.FitnessMax)
 
 # Create a toolbox with the required evolutionary operators
 toolbox = base.Toolbox()
-toolbox.register("attr_int", random.randint, 0, class_count)  # Min and max for output of prey
+toolbox.register("attr_int", random.uniform, 0, len(train_images))  # Min and max for output of prey
 toolbox.register("attribute", random.random)
 toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attribute,
                  n=int(len(train_images) * prey_partition_size))  # Change this to subset size. I've chosen 1/3rd arbitrarily.
@@ -162,7 +161,7 @@ toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("evaluate", evaluate_prey)
 
 # Create an initial population
-population = toolbox.population(n=70)
+population = toolbox.population(n=400)
 
 # Set the algorithm parameters
 CXPB, MUTPB, NGEN = 0.7, 0.2, prey_mini_epochs
