@@ -15,6 +15,44 @@ from efficientnet.tfkeras import EfficientNetB0
 
 from deap import base, creator, tools
 
+import threading
+import psutil
+import time
+import pynvml
+
+current_phase = 'none'
+
+stop_logging = threading.Event()
+
+def continual_logging(file_path, interval=1, stop_event=None):
+    global current_phase
+
+    with open(file_path, 'w') as file:  # Open the file once and write headers
+        file.write("timestamp, memory_usage_mb, cpu_usage_percent, gpu_usage_percent, phase\n")
+
+    while not stop_event.is_set():
+        # Memory usage in MB
+        memory_usage = psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024)
+        # CPU usage in percent
+        cpu_usage = psutil.cpu_percent(interval=None)
+
+        log_message = f"{datetime.now()}, {memory_usage}, {cpu_usage}"
+
+        # GPU usage in percent if enabled
+        try:
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # 0 for the first GPU
+            gpu_util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+            gpu_usage = gpu_util.gpu
+            log_message += f", {gpu_usage}"
+        except pynvml.NVMLError as e:
+            log_message += ", N/A"
+            print(e)
+        
+        # Add the phase to the log message
+        log_message += f", {current_phase}\n"
+        with open(file_path, 'a') as file:
+            file.write(log_message)
+        time.sleep(interval)
 
 def unpickle(file):
     with open(file, 'rb') as fo:
@@ -91,12 +129,15 @@ train_images, train_labels = shuffle(train_images, train_labels, random_state=1)
 # train_labels = tf.squeeze(train_labels)
 
 starttime = datetime.now()
+current_phase = 'initializing'
+logging_thread = threading.Thread(target=continual_logging, args=('memory_usage_log.txt', 1, stop_logging))
+logging_thread.start()
 
 # ======= PREDATOR DEFINITION =======
 
 # # Model = ResNet50
-predator = ResNet50(
-# predator = EfficientNetB0(
+# predator = ResNet50(
+predator = EfficientNetB0(
     weights = None,
     input_shape = (32,32,3),
     classes = class_count
@@ -247,6 +288,7 @@ for global_rounds in range(global_epochs):
     # continue
 
     # Actual
+    current_phase = 'prey'
     print(f"{str(datetime.now())} | Training prey...")
     best_individual = train_prey()
 
@@ -267,6 +309,7 @@ for global_rounds in range(global_epochs):
         file.write(', '.join(map(str, indices)) + '\n')
 
     # Predict
+    current_phase = 'predator'
     print(f"{str(datetime.now())} | Making predictions...")
     predator_predictions = predator.predict(train_images, verbose=0)
     full_loss, full_acc = predator.evaluate(train_images, train_labels)
@@ -276,6 +319,9 @@ for global_rounds in range(global_epochs):
 
 
 full_loss, full_acc = predator.evaluate(train_images, train_labels)
+
+stop_logging.set()
+logging_thread.join()
 
 endtime = datetime.now()
 
