@@ -301,8 +301,8 @@ for global_rounds in range(global_epochs):
     # Predict
     print(f"{str(datetime.now())} | Making predictions...")
     predator_predictions = predator.predict(train_images, verbose=0)
-    full_loss, full_acc = predator.evaluate(train_images, train_labels)
-    print(f"{str(datetime.now())} | Train accuracy: {full_acc}")
+    # full_loss, full_acc = predator.evaluate(train_images, train_labels)
+    # print(f"{str(datetime.now())} | Train accuracy: {full_acc}")
 
     print(f"{str(datetime.now())} | Done!")
 

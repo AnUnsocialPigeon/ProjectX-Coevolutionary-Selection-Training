@@ -64,7 +64,7 @@ print(f"Predator Start Epochs: {predator_start_epochs}")
 print(f"Predator Batch Size: {predator_batch_size}")
 
 # Dataset choosing
-print("Dataset:\n1: CIFAR-10\n2: CIFAR-100\n3: ImageNet")
+# print("Dataset:\n1: CIFAR-10\n2: CIFAR-100\n3: ImageNet")
 datasetChoice = "2"
 
 load_dotenv()
@@ -104,53 +104,53 @@ starttime = datetime.now()
 # Batch norm model 4
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.initializers import RandomNormal, Constant
-predator = Sequential()
+predator = models.Sequential([
+    layers.Conv2D(256,(3,3),padding='same',input_shape=(32,32,3)),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.Conv2D(256,(3,3),padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.MaxPooling2D(pool_size=(2,2)),
+    layers.Dropout(0.2),
 
-predator.add(Conv2D(256,(3,3),padding='same',input_shape=(32,32,3)))
-predator.add(BatchNormalization())
-predator.add(Activation('relu'))
-predator.add(Conv2D(256,(3,3),padding='same'))
-predator.add(BatchNormalization())
-predator.add(Activation('relu'))
-predator.add(MaxPooling2D(pool_size=(2,2)))
-predator.add(Dropout(0.2))
+    layers.Conv2D(512,(3,3),padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.Conv2D(512,(3,3),padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.MaxPooling2D(pool_size=(2,2)),
+    layers.Dropout(0.2),
 
-predator.add(Conv2D(512,(3,3),padding='same'))
-predator.add(BatchNormalization())
-predator.add(Activation('relu'))
-predator.add(Conv2D(512,(3,3),padding='same'))
-predator.add(BatchNormalization())
-predator.add(Activation('relu'))
-predator.add(MaxPooling2D(pool_size=(2,2)))
-predator.add(Dropout(0.2))
+    layers.Conv2D(512,(3,3),padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.Conv2D(512,(3,3),padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.MaxPooling2D(pool_size=(2,2)),
+    layers.Dropout(0.2),
 
-predator.add(Conv2D(512,(3,3),padding='same'))
-predator.add(BatchNormalization())
-predator.add(Activation('relu'))
-predator.add(Conv2D(512,(3,3),padding='same'))
-predator.add(BatchNormalization())
-predator.add(Activation('relu'))
-predator.add(MaxPooling2D(pool_size=(2,2)))
-predator.add(Dropout(0.2))
+    layers.Conv2D(512,(3,3),padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.Conv2D(512,(3,3),padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.MaxPooling2D(pool_size=(2,2)),
+    layers.Dropout(0.2),
 
-predator.add(Conv2D(512,(3,3),padding='same'))
-predator.add(BatchNormalization())
-predator.add(Activation('relu'))
-predator.add(Conv2D(512,(3,3),padding='same'))
-predator.add(BatchNormalization())
-predator.add(Activation('relu'))
-predator.add(MaxPooling2D(pool_size=(2,2)))
-predator.add(Dropout(0.2))
-
-predator.add(Flatten())
-predator.add(Dense(1024))
-predator.add(Activation('relu'))
-predator.add(Dropout(0.2))
-predator.add(BatchNormalization(momentum=0.95, 
-        epsilon=0.005,
-        beta_initializer=RandomNormal(mean=0.0, stddev=0.05), 
-        gamma_initializer=Constant(value=0.9)))
-predator.add(Dense(20,activation='softmax'))
+    layers.Flatten(),
+    layers.Dense(1024),
+    layers.Activation('relu'),
+    layers.Dropout(0.2),
+    layers.BatchNormalization(momentum=0.95, 
+            epsilon=0.005,
+            beta_initializer=RandomNormal(mean=0.0, stddev=0.05), 
+            gamma_initializer=Constant(value=0.9)),
+    layers.Dense(20,activation='softmax')
+])
 predator.summary()
 
 # ======= PREDATOR DEFINITION =======
@@ -202,45 +202,19 @@ print("\n\nCurrently trying to fit 1/5th all data randomly got")
 for global_rounds in range(global_epochs):
     print(f"\n{str(datetime.now())} | Round {global_rounds + 1} Begin.")
 
-    # Test
-    #print(f"{str(datetime.now())} | Training predator...")
-    # All
-    #predator.fit(train_images, train_labels, epochs=10, validation_data=(train_images, train_labels), verbose=0)
-
-    # Selection
-    #indecies = [i for i in range(0, int(len(train_images / 5)))]        # First selection
-    # indecies = [random.randint(0, len(train_images) - 1) for i in range(int(len(train_images) / 5))] # Random Section
-    # predator.fit(train_images[indecies], train_labels[indecies], epochs=10, validation_data=(train_images[indecies], train_labels[indecies]), verbose=0)
-
-
-    # log_indecies(indecies)
-    # continue
-
-    # Actual
-    print(f"{str(datetime.now())} | Training prey...")
-    best_individual = train_prey()
-
-    indices = [round(i) % len(train_images) for i in best_individual]
-
     print(f"{str(datetime.now())} | Training predator with early stopping...")
-    log_indecies(indices)
 
     # Training predator with early stopping callback
     callbacks = [TerminateOnBaseline(monitor="accuracy",baseline=1.0)]
 
     # Train the model on the subset with early stopping
-    predator.fit(train_images[indices], train_labels[indices], epochs = predator_mini_epochs, verbose=1, callbacks=callbacks, batch_size=predator_batch_size)
-
-    # Log indecies for debug
-    print(f"{str(datetime.now())} | Outputting indices to log file")
-    with open('indicesLog.txt', 'a') as file:
-        file.write(', '.join(map(str, indices)) + '\n')
+    predator.fit(train_images, train_labels, epochs = predator_mini_epochs, verbose=1, callbacks=callbacks, batch_size=predator_batch_size)
 
     # Predict
     print(f"{str(datetime.now())} | Making predictions...")
-    predator_predictions = predator.predict(train_images, verbose=0)
-    full_loss, full_acc = predator.evaluate(train_images, train_labels)
-    print(f"{str(datetime.now())} | Train accuracy: {full_acc}")
+    # predator_predictions = predator.predict(train_images, verbose=0)
+    # full_loss, full_acc = predator.evaluate(train_images, train_labels)
+    # print(f"{str(datetime.now())} | Train accuracy: {full_acc}")
 
     print(f"{str(datetime.now())} | Done!")
 
