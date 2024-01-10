@@ -12,6 +12,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 # Import EfficientNet (shown to have higher accuracy than ResNet50 with fewer parameters)
 from efficientnet.tfkeras import EfficientNetB0
 from tensorflow.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.applications import EfficientNetB7
 
 from deap import base, creator, tools, algorithms
 
@@ -48,7 +49,7 @@ prey_mini_epochs = 10
 prey_partition_size = 0.25
 predator_mini_epochs = 10
 predator_start_epochs = 1
-predator_batch_size = 32
+predator_batch_size = 64
 
 
 
@@ -164,7 +165,7 @@ toolbox.register("evaluate", evaluate_prey)
 population = toolbox.population(n=400)
 
 # Set the algorithm parameters
-CXPB, MUTPB, NGEN = 0.7, 0.2, prey_mini_epochs
+CXPB, MUTPB, NGEN = 0.6, 0.4, prey_mini_epochs
 
 # Evaluate the entire population
 fitnesses = list(map(toolbox.evaluate, population))
