@@ -38,51 +38,22 @@ with open('indicesLog.txt', 'w'):
     pass
 
 # Default values. Can get overwritten in x.config
-global_epochs = 10
-prey_mini_epochs = 5
-prey_partition_size = 0.2
-predator_mini_epochs = 5
+global_epochs = 30
+predator_mini_epochs = 1
 predator_start_epochs = 1
-predator_batch_size = 32
-
-# Obtaining values from config file
-try:
-    with open('x.config') as file:
-        for line in file:
-            try:
-                parts = line.split(':')
-                if parts[0] == "Global Epochs":
-                    global_epochs = int(parts[1])
-                elif parts[0] == "Prey Mini Epochs":
-                    prey_mini_epochs = int(parts[1])
-                elif parts[0] == "Predator Mini Epochs":
-                    predator_mini_epochs = int(parts[1])
-                elif parts[0] == "Predator Start Epochs":
-                    predator_start_epochs = int(parts[1])
-                elif parts[0] == "Prey Partition Size":
-                    prey_partition_size = float(parts[1])
-                elif parts[0] == "Predator Batch Size":
-                    predator_batch_size = int(parts[1])
-                else:
-                    print("Unrecognised config line: " + str(line))                    
-            except Exception as e:
-                print(e)
-except FileNotFoundError as e:
-    print(e)
+predator_batch_size = 64
 
 
 print("Proceding with the following values:")
 print(f"Global Epochs: {global_epochs}")
-print(f"Prey Mini Epochs: {prey_mini_epochs}")
-print(f"Prey Partition Size: {prey_partition_size}")
 print(f"Predator Mini Epochs: {predator_mini_epochs}")
 print(f"Predator Start Epochs: {predator_start_epochs}")
 print(f"Predator Batch Size: {predator_batch_size}")
 
-class_count = 20
+class_count = 100
 
 data_dict = unpickle(r'cifar-100-python/train')
-train_images, train_labels = data_dict[b'data'], data_dict[b'coarse_labels']
+train_images, train_labels = data_dict[b'data'], data_dict[b'fine_labels']
 train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) # resize
 
 train_labels = tf.one_hot(train_labels,
@@ -96,22 +67,6 @@ train_images, val_images, train_labels, val_labels = train_test_split(train_imag
 starttime = datetime.now()
 
 # ======= PREDATOR DEFINITION =======
-
-# # Model = ResNet50 or EfficientNetB0
-#predator = ResNet50(
-#base_model = EfficientNetB0(
-#    weights = "imagenet",
-#    include_top=False,
-#    input_shape = (32,32,3),
-#    classes = class_count
-#)
-
-#predator = Sequential()
-#predator.add(base_model)
-#predator.add(GlobalAveragePooling2D())
-#predator.add(Dropout(0.5))
-#predator.add(Dense(class_count, activation='softmax'))
-#predator.summary()
 
 # Batch norm model 4
 from tensorflow.keras.layers import BatchNormalization
@@ -162,11 +117,11 @@ predator.add(BatchNormalization(momentum=0.95,
         epsilon=0.005,
         beta_initializer=RandomNormal(mean=0.0, stddev=0.05), 
         gamma_initializer=Constant(value=0.9)))
-predator.add(Dense(20,activation='softmax'))
+predator.add(Dense(100,activation='softmax'))
 predator.summary()
 
 # Compile the model
-predator.compile(optimizer='adam',
+predator.compile(optimizer=optimizers.RMSprop(learning_rate=1e-4),
                  loss=tf.keras.losses.CategoricalCrossentropy(),
                  metrics=['accuracy'])
 
@@ -174,32 +129,11 @@ print("Predator created...")
 
 # ===============================
 
-from keras.callbacks import Callback
-
-class TerminateOnBaseline(Callback):
-    """Callback that terminates training when either acc or val_acc reaches a specified baseline
-    """
-    def __init__(self, monitor='accuracy', baseline=0.9):
-        super(TerminateOnBaseline, self).__init__()
-        self.monitor = monitor
-        self.baseline = baseline
-
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
-        acc = logs.get(self.monitor)
-        if acc is not None:
-            if acc >= self.baseline:
-                print('Epoch %d: Reached baseline, terminating training' % (epoch))
-                self.model.stop_training = True
-
 for global_rounds in range(global_epochs):
     print(f"\n{str(datetime.now())} | Round {global_rounds + 1} Begin.")
 
-    # Training predator with early stopping callback
-    callbacks = [TerminateOnBaseline(monitor="accuracy",baseline=1.0)]
-
     # Train the model on the subset with early stopping
-    predator.fit(train_images, train_labels, epochs = predator_mini_epochs, verbose=1, callbacks=callbacks, batch_size=predator_batch_size, validation_data=(val_images,val_labels))
+    predator.fit(train_images, train_labels, epochs = predator_mini_epochs, verbose=1, batch_size=predator_batch_size, validation_data=(val_images,val_labels))
 
 
 train_loss, train_acc = predator.evaluate(train_images, train_labels)
@@ -214,7 +148,7 @@ val_loss, val_acc = predator.evaluate(val_images, val_labels)
 print(f"Validation accuracy: {val_acc}")
 
 testdata_dict = unpickle(r'cifar-100-python/test')
-test_images, test_labels = testdata_dict[b'data'], testdata_dict[b'coarse_labels']
+test_images, test_labels = testdata_dict[b'data'], testdata_dict[b'fine_labels']
 test_images = test_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) # resize
 
 test_labels = tf.one_hot(test_labels,
