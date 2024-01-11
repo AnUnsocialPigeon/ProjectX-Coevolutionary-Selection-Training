@@ -15,9 +15,12 @@ To run this project, you need to have the following dependencies installed:
 
 You also need to create a .env file in the root directory of the project and add the following variables:
 
+- ImageNet_DIR={Path to ImageNet file}
+
+You will not need one for the following variables:
+
 - CIFAR100_DIR={Path to a CIFAR100 file}
 - CIFAR10_DIR={Path to CIFAR10 file}
-- ImageNet_DIR={Path to ImageNet file}
 
 ## Usage
 
