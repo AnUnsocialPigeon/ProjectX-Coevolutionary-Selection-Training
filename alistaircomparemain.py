@@ -49,9 +49,13 @@ def continual_logging(file_path, interval=1, stop_event=None):
     while not stop_event.is_set():
         # Memory usage in MB
         memory_usage = psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024)
+        
+        print("MEMORY USAGE: " + str(memory_usage))
+        
         # CPU usage in percent
         cpu_usage = psutil.cpu_percent(interval=None)
 
+        print("CPU USAGE: " + str(cpu_usage))
         log_message = f"{datetime.now()}, {memory_usage}, {cpu_usage}"
 
         # GPU usage in percent if enabled
@@ -102,7 +106,7 @@ print(f"Predator Batch Size: {predator_batch_size}")
 
 class_count = 100
 
-data_dict = unpickle(r'cifar-100-python/train')
+data_dict = unpickle(r'C:/Users/jdtur/Downloads/cifar-100-python/cifar-100-python/train')
 train_images, train_labels = data_dict[b'data'], data_dict[b'fine_labels']
 train_images = train_images.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1) # resize
 
