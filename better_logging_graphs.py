@@ -21,6 +21,9 @@ def read_usage_log(file_path):
 
 def plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases):
     dates = [datetime.strptime(ts, '%Y-%m-%d %H:%M:%S.%f') for ts in timestamps]
+    # Convert dates to relative time (in seconds)
+    initial_time = dates[0]
+    time_diff = [(date - initial_time).total_seconds() for date in dates]
 
     # Create three separate figures
     fig_memory, ax_memory = plt.subplots(figsize=(10, 5))
@@ -28,7 +31,7 @@ def plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases):
     fig_gpu, ax_gpu = plt.subplots(figsize=(10, 5))
 
     # Define colors for each phase
-    phase_colors = {'prey': 'blue', 'predator': 'red', 'initializing': 'green'}
+    phase_colors = {'prey': 'blue', 'predator': 'red', 'initialising': 'green'}
 
     # Variables to store the start of the current segment
     segment_start_idx = 0
@@ -37,9 +40,9 @@ def plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases):
     for i in range(1, len(phases)):
         if phases[i] != current_phase or i == len(phases) - 1:
             # Plot the segment on the corresponding subplot
-            ax_memory.plot(dates[segment_start_idx:i+1], memory_usage[segment_start_idx:i+1], marker='o', linestyle='-', color=phase_colors.get(current_phase, 'black'))
-            ax_cpu.plot(dates[segment_start_idx:i+1], cpu_usage[segment_start_idx:i+1], marker='o', linestyle='-', color=phase_colors.get(current_phase, 'black'))
-            ax_gpu.plot(dates[segment_start_idx:i+1], gpu_usage[segment_start_idx:i+1], marker='o', linestyle='-', color=phase_colors.get(current_phase, 'black'))
+            ax_memory.plot(time_diff[segment_start_idx:i+1], memory_usage[segment_start_idx:i+1], marker='o', linestyle='-', color=phase_colors.get(current_phase, 'black'))
+            ax_cpu.plot(time_diff[segment_start_idx:i+1], cpu_usage[segment_start_idx:i+1], marker='o', linestyle='-', color=phase_colors.get(current_phase, 'black'))
+            ax_gpu.plot(time_diff[segment_start_idx:i+1], gpu_usage[segment_start_idx:i+1], marker='o', linestyle='-', color=phase_colors.get(current_phase, 'black'))
 
             # Start a new segment
             segment_start_idx = i
@@ -54,9 +57,9 @@ def plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases):
     custom_lines = [plt.Line2D([0], [0], color=color, lw=2) for color in phase_colors.values()]
     fig_memory.legend(custom_lines, phase_colors.keys(), loc='upper right')
 
-    # Set x-axis date format for each subplot
+    # Set x-axis label to 'Time (s)'
     for ax in [ax_memory, ax_cpu, ax_gpu]:
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
+        ax.set_xlabel('Time (s)')
 
     plt.xticks(rotation=45)
     
