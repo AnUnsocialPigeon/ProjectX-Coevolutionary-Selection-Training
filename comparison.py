@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.utils import shuffle
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
-
+import pandas
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.models import Sequential
@@ -92,7 +92,7 @@ with open('indicesLog.txt', 'w'):
     pass
 
 # Default values. Can get overwritten in x.config
-global_epochs = 30
+global_epochs = 3
 predator_mini_epochs = 1
 predator_start_epochs = 1
 predator_batch_size = 64
@@ -185,14 +185,19 @@ print("Predator created...")
 
 # ===============================
 
+hist_dict = {"loss":[],"accuracy":[],"val_loss":[],"val_accuracy":[]}
+
 for global_rounds in range(global_epochs):
     current_round = global_rounds
     current_phase = 'predator'
     print(f"\n{str(datetime.now())} | Round {global_rounds + 1} Begin.")
 
     # Train the model on the subset with early stopping
-    predator.fit(train_images, train_labels, epochs = predator_mini_epochs, verbose=1, batch_size=predator_batch_size, validation_data=(val_images,val_labels))
-
+    history = predator.fit(train_images, train_labels, epochs = predator_mini_epochs, steps_per_epoch=127, verbose=1, batch_size=predator_batch_size, validation_data=(val_images,val_labels))
+    print(history.history.keys())
+    for key in history.history.keys():
+         print(history.history[key])
+         hist_dict[key].extend(history.history[key])
 
 train_loss, train_acc = predator.evaluate(train_images, train_labels)
 
@@ -227,3 +232,6 @@ test_labels = tf.squeeze(test_labels)
 test_loss, test_acc = predator.evaluate(test_images, test_labels)
 
 print(f"Test Accuracy: {test_acc}")
+
+hist_df = pandas.DataFrame.from_dict(hist_dict)
+hist_df.to_csv("history_compare.csv")
