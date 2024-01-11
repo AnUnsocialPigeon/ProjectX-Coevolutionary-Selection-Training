@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.utils import shuffle
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
-
+import pandas
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.models import Sequential
@@ -87,7 +87,7 @@ with open('indicesLog.txt', 'w'):
     pass
 
 # Default values. Can get overwritten in x.config
-global_epochs = 30
+global_epochs = 3
 prey_mini_epochs = 3
 prey_partition_size = 0.2
 predator_mini_epochs = 2
@@ -187,13 +187,19 @@ predator.summary()
 #subset_train_images = train_images[subset_indices]
 #subset_train_labels = train_labels[subset_indices]
 
-predator.fit(
+hist_dict = {}
+
+history = predator.fit(
     train_images,
     train_labels,
     epochs = predator_start_epochs, # Increase epochs while training
     batch_size = predator_batch_size,
     validation_data = (val_images, val_labels)
 )
+
+for key in history.history.keys():
+    hist_dict[key] = []
+    hist_dict[key].extend(history.history[key])
 
 predator_predictions = predator.predict(train_images, verbose=0)
 print("Predator created...")
@@ -318,7 +324,11 @@ for global_rounds in range(global_epochs):
     callbacks = [TerminateOnBaseline(monitor="accuracy",baseline=1.0)]
 
     # Train the model on the subset with early stopping
-    predator.fit(train_images[indices], train_labels[indices], epochs = predator_mini_epochs, verbose=1, callbacks=callbacks, batch_size=predator_batch_size, validation_data=(val_images,val_labels))
+    history = predator.fit(train_images[indices], train_labels[indices], epochs = predator_mini_epochs, verbose=1, callbacks=callbacks, batch_size=predator_batch_size, validation_data=(val_images,val_labels))
+    
+    for key in history.history.keys():
+        hist_dict[key].extend(history.history[key])
+    
 
     # Predict
     print(f"{str(datetime.now())} | Making predictions...")
@@ -359,3 +369,7 @@ test_labels = tf.squeeze(test_labels)
 test_loss, test_acc = predator.evaluate(test_images, test_labels)
 
 print(f"Test Accuracy: {test_acc}")
+
+hist_df = pandas.DataFrame.from_dict(hist_dict)
+print(hist_df)
+hist_df.to_csv("history_main.csv")
