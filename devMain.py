@@ -11,12 +11,10 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Activation, Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization, GlobalAveragePooling2D
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
-# Import EfficientNet (shown to have higher accuracy than ResNet50 with fewer parameters)
-from efficientnet.tfkeras import EfficientNetB0
-from tensorflow.keras.applications.resnet50 import ResNet50
-from tensorflow.keras.applications import EfficientNetB7
+
 
 from deap import base, creator, tools, algorithms
+import matplotlib.pyplot as plt
 
 import threading
 import psutil
@@ -95,8 +93,8 @@ with open('indicesLog.txt', 'w'):
 
 
 # Default values. Can get overwritten in x.config
-global_epochs = 30
-prey_mini_epochs = 10
+global_epochs = 5
+prey_mini_epochs = 5
 prey_partition_size = 0.25
 predator_mini_epochs = 10
 predator_start_epochs = 1
@@ -136,7 +134,7 @@ logging_thread.start()
 
 # ======= PREDATOR DEFINITION =======
 
-# # Model = ResNet50
+# # Model = 
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.initializers import RandomNormal, Constant
 predator = Sequential()
@@ -311,11 +309,14 @@ class TerminateOnBaseline(Callback):
                 print('\n Epoch %d: Reached baseline, terminating training' % (epoch))
                 self.model.stop_training = True
 
+time_taken_with_cest = []
+
 print("\n\nCurrently trying to fit 1/5th all data randomly got")
 for global_rounds in range(global_epochs):
     current_round = global_rounds
     print(f"\n{str(datetime.now())} | Round {global_rounds + 1} Begin.")
 
+    start_time = time.time()
     # Actual
     current_phase = 'prey'
     print(f"{str(datetime.now())} | Training prey...")
@@ -338,11 +339,17 @@ for global_rounds in range(global_epochs):
     predator_predictions = predator.predict(train_images, verbose=0)
     # full_loss, full_acc = predator.evaluate(train_images, train_labels)
     # print(f"{str(datetime.now())} | Train accuracy: {full_acc}")
+    end_time = time.time()
+
+    # Calculate time taken
+    time_taken = end_time - start_time
+    time_taken_with_cest.append(time_taken)
 
     print(f"{str(datetime.now())} | Done!")
 
 
 full_loss, full_acc = predator.evaluate(train_images, train_labels)
+epochs = range(1, global_epochs + 1)
 
 endtime = datetime.now()
 stop_logging.set()
@@ -351,8 +358,10 @@ logging_thread.join()
 print(f"{str(datetime.now())} | Train accuracy: {full_acc}")
 print(f"That took {str(endtime - starttime)}")
 
-# Append the logs that have been generated to the end of the log file
-import loggymclogface
-
-timestamps, memory_usage, cpu_usage, gpu_usage, phases = loggymclogface.read_usage_log(logging_file_dir)
-loggymclogface.plot_usage_graphs(timestamps, memory_usage, cpu_usage, gpu_usage, phases)
+plt.plot(epochs, time_taken_with_cest, label='With CEST')
+plt.xlabel('Epochs')
+plt.ylabel('Time taken (seconds)')
+plt.title('Time taken vs Epochs')
+plt.legend()
+plt.grid(True)
+plt.show()
