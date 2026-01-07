@@ -7,7 +7,7 @@ This repository contains our submission for the University of Toronto's ProjectX
 To run this project, you need to have the following dependencies installed:
 
 - Python 3.8 or higher
-- PyTorch 1.9 or higher
+- Tensorflow 2.11 or higher
 - DEAP 1.3 or higher
 - Wandb 0.12 or higher
 - Matplotlib 3.4 or higher
